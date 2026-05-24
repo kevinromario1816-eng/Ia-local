@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LexiGuard AI — Asistente Legal y Analizador de Contratos de IA Local</title>
+  <meta name="description" content="MVP de análisis de contratos y auditoría de riesgos legales impulsado por inteligencia artificial local vía Ollama. Diseñado con JavaScript Vanilla y Vite.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%2307090e%22/><path d=%22M30,30 L70,30 L70,70 L30,70 Z%22 fill=%22none%22 stroke=%22%2300d2ff%22 stroke-width=%228%22/><path d=%22M45,45 L65,45 M45,55 L65,55%22 stroke=%22%23a855f7%22 stroke-width=%226%22 stroke-linecap=%22round%22/></svg>">
+  <script type="module" crossorigin src="/assets/index-BT8Din-j.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BcaquE7I.css">
+</head>
+<body>
+
+  <div class="glass-container">
+    
+    <!-- HEADER: Marca e Integración de Ollama -->
+    <header>
+      <div class="brand-section">
+        <div class="logo-icon">L</div>
+        <div class="logo-text">
+          <h1>LexiGuard <span>AI</span></h1>
+          <p>Inteligencia Legal Local</p>
+        </div>
+      </div>
+      
+      <!-- Estado de Conexión de Ollama -->
+      <div class="ollama-status-badge" id="ollama-status-container">
+        <span class="status-dot loading" id="status-dot"></span>
+        <span id="status-text">Buscando Ollama...</span>
+        <div class="model-selector-wrapper" id="model-selector-wrapper" style="display: none;">
+          <span style="color: var(--text-dim);">|</span>
+          <select id="model-select" class="model-selector">
+            <!-- Cargado dinámicamente -->
+            <option value="gemma:2b">gemma:2b</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN APP GRID -->
+    <main class="app-grid">
+      
+      <!-- SECCIÓN IZQUIERDA: Entrada del Contrato -->
+      <section class="glass-panel" aria-labelledby="editor-title">
+        <div class="panel-header">
+          <h2 id="editor-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <line x1="10" y1="9" x2="8" y2="9"></line>
+            </svg>
+            Editor de Contrato
+          </h2>
+          <span class="template-title" id="mode-badge">Borrador</span>
+        </div>
+        
+        <div class="panel-body">
+          
+          <!-- Alerta de Configuración (Ollama Desconectado) -->
+          <div class="setup-alert" id="ollama-offline-alert" style="display: none;">
+            <div class="setup-alert-icon">⚠️</div>
+            <div class="setup-alert-content">
+              <h4>Servidor Ollama No Detectado</h4>
+              <p>
+                No pudimos conectar con Ollama en <code>localhost:11434</code>. 
+                Para usar tu IA local real: inicia Ollama y ejecuta un modelo (ej. <code>ollama run gemma:2b</code>).
+                <br><strong>Modo Demostración Activo:</strong> Analizaremos tus contratos usando una simulación jurídica inteligente.
+              </p>
+            </div>
+          </div>
+
+          <!-- Área de Entrada de Texto -->
+          <div class="editor-container">
+            <textarea 
+              id="contract-input" 
+              class="contract-textarea" 
+              placeholder="Pega el contenido del contrato aquí o selecciona una de las plantillas rápidas de abajo para probar de inmediato..."
+              aria-label="Contenido del contrato"
+            ></textarea>
+            <span class="char-counter" id="char-counter">0 caracteres</span>
+          </div>
+
+          <!-- Selección de Plantillas Rápidas -->
+          <div class="template-section">
+            <span class="template-title">Cargar Plantillas Rápidas</span>
+            <div class="template-chips" id="templates-container">
+              <!-- Cargado dinámicamente desde templates.js -->
+            </div>
+          </div>
+
+          <!-- Acciones -->
+          <div class="action-bar">
+            <button id="analyze-btn" class="primary-btn" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+              <span>Analizar Contrato con IA</span>
+            </button>
+            <button id="clear-btn" class="clear-btn" title="Limpiar texto" aria-label="Limpiar texto del contrato">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SECCIÓN DERECHA: Análisis Legal de IA -->
+      <section class="glass-panel" id="analysis-panel" aria-labelledby="analysis-title">
+        
+        <div class="panel-header">
+          <h2 id="analysis-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            Tablero de Inteligencia Legal
+          </h2>
+          <div class="ollama-status-badge" id="source-badge" style="display: none;">Simulado</div>
+        </div>
+
+        <div class="panel-body" style="position: relative;">
+          
+          <!-- Pestañas de Navegación (Solo activas tras analizar) -->
+          <nav class="tab-navigation" id="tab-nav" style="display: none;" aria-label="Secciones del análisis">
+            <button class="tab-btn active" data-tab="dashboard">
+              📊 Dashboard
+            </button>
+            <button class="tab-btn" data-tab="risks">
+              ⚠️ Cláusulas Críticas
+            </button>
+            <button class="tab-btn" data-tab="negotiation">
+              🤝 Negociación
+            </button>
+            <button class="tab-btn" data-tab="chat">
+              💬 Preguntar al Contrato
+            </button>
+          </nav>
+
+          <!-- Contenedores de Pestañas -->
+          <div class="tab-content-container">
+            
+            <!-- OVERLAY DE CARGA -->
+            <div class="loading-overlay" id="loading-overlay" style="display: none;">
+              <div class="spinner"></div>
+              <div class="loading-text" id="loading-title">Analizando Contrato...</div>
+              <div class="loading-subtext" id="loading-subtext">Leyendo cláusulas legales con modelo local</div>
+            </div>
+
+            <!-- ESTADO INICIAL (VACÍO) -->
+            <div class="empty-state" id="empty-state">
+              <div class="empty-icon-wrapper">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                  <path d="M12 16v-4"></path>
+                  <path d="M12 8h.01"></path>
+                </svg>
+              </div>
+              <h3>Esperando Contrato</h3>
+              <p>Ingresa un contrato o selecciona una plantilla rápida en el panel izquierdo y haz clic en "Analizar Contrato" para desplegar la auditoría de IA.</p>
+            </div>
+
+            <!-- TAB 1: DASHBOARD -->
+            <div class="tab-pane" id="tab-dashboard">
+              <div class="dashboard-grid">
+                
+                <!-- Medidor de Riesgo -->
+                <div class="dashboard-card">
+                  <span class="dashboard-card-title">Nivel de Riesgo Global</span>
+                  <div class="risk-meter-container">
+                    <svg class="gauge-svg" viewBox="0 0 100 100">
+                      <!-- Fondo de barra circular -->
+                      <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                      <!-- Relleno animado -->
+                      <circle class="gauge-fill" id="risk-gauge-fill" cx="50" cy="50" r="45" stroke="#10b981"></circle>
+                    </svg>
+                    <div class="gauge-label">
+                      <span class="gauge-value" id="risk-score-value">0</span>
+                      <span class="gauge-text low" id="risk-badge-text">Bajo</span>
+                    </div>
+                  </div>
+                  <div class="metadata-item">
+                    <span class="metadata-label">Tipo Detectado:</span>
+                    <span class="metadata-value" id="meta-contract-type">-</span>
+                  </div>
+                  <div class="metadata-item">
+                    <span class="metadata-label">Idioma:</span>
+                    <span class="metadata-value" id="meta-language">-</span>
+                  </div>
+                </div>
+
+                <!-- Resumen Ejecutivo -->
+                <div class="dashboard-card">
+                  <span class="dashboard-card-title">Resumen Ejecutivo</span>
+                  <div class="summary-text-box" id="executive-summary-content">
+                    <!-- Dinámico -->
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Tarjeta de Diagnóstico Legal -->
+              <div class="dashboard-card" style="margin-top: auto;">
+                <span class="dashboard-card-title" style="color: var(--accent-primary);">Diagnóstico General de LexiGuard</span>
+                <p style="font-size: 0.85rem; line-height: 1.5;" id="general-diagnosis-text">
+                  Carga y analiza un contrato para generar el diagnóstico completo de protección.
+                </p>
+              </div>
+            </div>
+
+            <!-- TAB 2: CLÁUSULAS CRÍTICAS / RIESGOS -->
+            <div class="tab-pane" id="tab-risks">
+              <div class="risks-list" id="risks-list-container">
+                <!-- Se inyecta dinámicamente -->
+              </div>
+            </div>
+
+            <!-- TAB 3: CONSEJOS DE NEGOCIACIÓN -->
+            <div class="tab-pane" id="tab-negotiation">
+              <div class="risks-list" id="negotiation-tips-container">
+                <!-- Se inyecta dinámicamente -->
+              </div>
+            </div>
+
+            <!-- TAB 4: CHAT INTERACTIVO CON EL CONTRATO -->
+            <div class="tab-pane" id="tab-chat">
+              <div class="chat-container">
+                <div class="chat-messages" id="chat-messages-container">
+                  <div class="chat-bubble system">
+                    ¡Hola! Soy tu asistente de auditoría legal de LexiGuard. Analicé el contrato cargado. Puedes hacerme preguntas sobre plazos, obligaciones, multas o cualquier término del documento.
+                  </div>
+                </div>
+                <div class="chat-input-area">
+                  <input 
+                    type="text" 
+                    id="chat-user-input" 
+                    class="chat-input" 
+                    placeholder="Pregúntale a la IA (ej. ¿Cuál es el plazo de aviso de terminación?)..."
+                    aria-label="Pregunta sobre el contrato"
+                  >
+                  <button id="chat-send-btn" class="chat-send-btn" disabled aria-label="Enviar pregunta">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+      
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+      <p>Desarrollado para el <strong>Reto: Transforma una Industria con IA</strong>. LexiGuard utiliza modelos de lenguaje de código abierto de forma local y 100% segura.</p>
+    </footer>
+
+  </div>
+
+</body>
+</html>
